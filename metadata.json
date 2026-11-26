@@ -1,0 +1,6 @@
+{
+  "name": "MSN Messenger",
+  "description": "Classic Windows XP style MSN Messenger for Android phones and tablets with real-time chat, nudges, winks, custom fonts and colors, emoticons, voice messages, media sharing, multiplayer 5-in-a-row XO and memory games, and multi-language support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

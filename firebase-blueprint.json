@@ -1,0 +1,169 @@
+{
+  "entities": {
+    "UserAccount": {
+      "title": "UserAccount",
+      "description": "Private authenticated user preferences and MSN Passport metadata.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID" },
+        "passportEmail": { "type": "string", "description": "User Google/MSN Passport email" },
+        "languageCode": { "type": "string", "description": "Selected UI language code (one of 26 classic MSN languages)" },
+        "soundEnabled": { "type": "boolean", "description": "Whether classic MSN sound effects are enabled" },
+        "vibrationEnabled": { "type": "boolean", "description": "Whether nudge vibration is enabled" },
+        "chatFontId": { "type": "string", "description": "Preferred chat message font ID" },
+        "chatColorHex": { "type": "string", "description": "Preferred chat message color hex" },
+        "chatBold": { "type": "boolean", "description": "Default bold style for chat messages" },
+        "chatItalic": { "type": "boolean", "description": "Default italic style for chat messages" },
+        "chatUnderline": { "type": "boolean", "description": "Default underline style for chat messages" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp on creation" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on update" }
+      },
+      "required": ["userId", "passportEmail", "languageCode", "soundEnabled", "vibrationEnabled", "createdAt", "updatedAt"]
+    },
+    "BuddyDirectoryEntry": {
+      "title": "BuddyDirectoryEntry",
+      "description": "Public MSN Messenger profile card visible to contacts.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "msnHandle": { "type": "string" },
+        "displayName": { "type": "string" },
+        "personalMessage": { "type": "string" },
+        "status": {
+          "type": "string",
+          "enum": ["ONLINE", "AWAY", "BRB", "BUSY", "PHONE", "OFFLINE"]
+        },
+        "nameColorHex": { "type": "string" },
+        "nameFontId": { "type": "string" },
+        "nameBold": { "type": "boolean" },
+        "nameItalic": { "type": "boolean" },
+        "nameUnderline": { "type": "boolean" },
+        "avatarPreset": { "type": "string" },
+        "avatarBase64": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "msnHandle", "displayName", "personalMessage", "status", "nameColorHex", "nameFontId", "nameBold", "nameItalic", "nameUnderline", "avatarPreset", "createdAt", "updatedAt"]
+    },
+    "HandleLookup": {
+      "title": "HandleLookup",
+      "description": "Exact handle-to-UID index for adding buddies by MSN handle.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "msnHandle": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "msnHandle", "createdAt"]
+    },
+    "UserContact": {
+      "title": "UserContact",
+      "description": "Contact entry in a user's personal MSN buddy list.",
+      "type": "object",
+      "properties": {
+        "contactUid": { "type": "string" },
+        "msnHandle": { "type": "string" },
+        "groupName": { "type": "string" },
+        "blocked": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["contactUid", "msnHandle", "groupName", "blocked", "createdAt", "updatedAt"]
+    },
+    "ChatThread": {
+      "title": "ChatThread",
+      "description": "Conversation thread between 1 or 2 MSN users.",
+      "type": "object",
+      "properties": {
+        "memberUids": { "type": "array" },
+        "lastMessageText": { "type": "string" },
+        "lastMessageType": { "type": "string" },
+        "lastSenderId": { "type": "string" },
+        "typingUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["memberUids", "lastMessageText", "lastMessageType", "lastSenderId", "typingUids", "createdAt", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Individual MSN chat message (text, nudge, wink, image, video, voice).",
+      "type": "object",
+      "properties": {
+        "chatId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "memberUids": { "type": "array" },
+        "type": { "type": "string", "enum": ["TEXT", "NUDGE", "WINK", "IMAGE", "VIDEO", "VOICE"] },
+        "text": { "type": "string" },
+        "fontId": { "type": "string" },
+        "colorHex": { "type": "string" },
+        "bold": { "type": "boolean" },
+        "italic": { "type": "boolean" },
+        "underline": { "type": "boolean" },
+        "strikethrough": { "type": "boolean" },
+        "winkId": { "type": "string" },
+        "mediaBase64": { "type": "string" },
+        "mediaThumbBase64": { "type": "string" },
+        "mediaDurationMs": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["chatId", "senderId", "memberUids", "type", "text", "fontId", "colorHex", "bold", "italic", "underline", "strikethrough", "createdAt"]
+    },
+    "MultiplayerGame": {
+      "title": "MultiplayerGame",
+      "description": "Real-time Gomoku 5-in-a-row XO or Memory Match game inside a chat.",
+      "type": "object",
+      "properties": {
+        "chatId": { "type": "string" },
+        "gameType": { "type": "string", "enum": ["GOMOKU_XO", "MEMORY_MATCH"] },
+        "memberUids": { "type": "array" },
+        "playerXUid": { "type": "string" },
+        "playerOUid": { "type": "string" },
+        "currentTurnUid": { "type": "string" },
+        "status": { "type": "string", "enum": ["ACTIVE", "FINISHED"] },
+        "winnerUid": { "type": "string" },
+        "boardCells": { "type": "array" },
+        "matchedMask": { "type": "array" },
+        "revealedIndices": { "type": "array" },
+        "winningLine": { "type": "array" },
+        "scoreX": { "type": "integer" },
+        "scoreO": { "type": "integer" },
+        "moveCount": { "type": "integer" },
+        "createdByUid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["chatId", "gameType", "memberUids", "playerXUid", "playerOUid", "currentTurnUid", "status", "winnerUid", "boardCells", "matchedMask", "revealedIndices", "winningLine", "scoreX", "scoreO", "moveCount", "createdByUid", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserAccount" },
+      "description": "Private user account preferences"
+    },
+    "/users/{userId}/contacts/{contactId}": {
+      "schema": { "$ref": "#/entities/UserContact" },
+      "description": "User personal buddy list"
+    },
+    "/directory/{userId}": {
+      "schema": { "$ref": "#/entities/BuddyDirectoryEntry" },
+      "description": "Public MSN buddy profile cards"
+    },
+    "/handles/{handleId}": {
+      "schema": { "$ref": "#/entities/HandleLookup" },
+      "description": "Normalized MSN handle index"
+    },
+    "/chats/{chatId}": {
+      "schema": { "$ref": "#/entities/ChatThread" },
+      "description": "Chat threads"
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Messages within a chat thread"
+    },
+    "/chats/{chatId}/games/{gameId}": {
+      "schema": { "$ref": "#/entities/MultiplayerGame" },
+      "description": "Real-time multiplayer XO and Memory games inside a chat"
+    }
+  }
+}

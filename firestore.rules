@@ -1,0 +1,282 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidStringList(list, maxLen, maxItemLen) {
+      return list is list &&
+             list.size() <= maxLen &&
+             (list.size() == 0 || (list[0] is string && list[0].size() <= maxItemLen));
+    }
+
+    function isValidIntList(list, maxLen) {
+      return list is list &&
+             list.size() <= maxLen &&
+             (list.size() == 0 || list[0] is int);
+    }
+
+    function isValidUserAccount(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.passportEmail is string && data.passportEmail.size() <= 200 &&
+             data.languageCode is string && data.languageCode.size() >= 2 && data.languageCode.size() <= 12 &&
+             data.soundEnabled is bool &&
+             data.vibrationEnabled is bool &&
+             (!('chatFontId' in data) || (data.chatFontId is string && data.chatFontId.size() <= 40)) &&
+             (!('chatColorHex' in data) || (data.chatColorHex is string && data.chatColorHex.size() <= 16)) &&
+             (!('chatBold' in data) || data.chatBold is bool) &&
+             (!('chatItalic' in data) || data.chatItalic is bool) &&
+             (!('chatUnderline' in data) || data.chatUnderline is bool) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidBuddyDirectoryEntry(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.msnHandle is string && data.msnHandle.size() >= 2 && data.msnHandle.size() <= 64 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60 &&
+             data.personalMessage is string && data.personalMessage.size() <= 140 &&
+             data.status in ['ONLINE', 'AWAY', 'BRB', 'BUSY', 'PHONE', 'OFFLINE'] &&
+             data.nameColorHex is string && data.nameColorHex.size() >= 4 && data.nameColorHex.size() <= 16 &&
+             data.nameFontId is string && data.nameFontId.size() >= 1 && data.nameFontId.size() <= 40 &&
+             data.nameBold is bool &&
+             data.nameItalic is bool &&
+             data.nameUnderline is bool &&
+             data.avatarPreset is string && data.avatarPreset.size() <= 40 &&
+             (!('avatarBase64' in data) || (data.avatarBase64 is string && data.avatarBase64.size() <= 300000)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidHandleLookup(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.msnHandle is string && data.msnHandle.size() >= 2 && data.msnHandle.size() <= 64 &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidUserContact(data) {
+      return data.contactUid is string && data.contactUid.size() >= 1 && data.contactUid.size() <= 128 &&
+             data.msnHandle is string && data.msnHandle.size() >= 1 && data.msnHandle.size() <= 64 &&
+             data.groupName is string && data.groupName.size() >= 1 && data.groupName.size() <= 40 &&
+             data.blocked is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidChatThread(data) {
+      return data.memberUids is list &&
+             data.memberUids.size() >= 1 && data.memberUids.size() <= 2 &&
+             data.memberUids[0] is string && data.memberUids[0].size() <= 128 &&
+             (data.memberUids.size() == 1 || (data.memberUids[1] is string && data.memberUids[1].size() <= 128)) &&
+             data.lastMessageText is string && data.lastMessageText.size() <= 500 &&
+             data.lastMessageType is string && data.lastMessageType in ['TEXT', 'NUDGE', 'WINK', 'IMAGE', 'VIDEO', 'VOICE', 'GAME'] &&
+             data.lastSenderId is string && data.lastSenderId.size() <= 128 &&
+             isValidStringList(data.typingUids, 2, 128) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidChatMessage(data) {
+      return data.chatId is string && data.chatId.size() >= 1 && data.chatId.size() <= 128 &&
+             data.senderId is string && data.senderId == request.auth.uid &&
+             data.memberUids is list && data.memberUids.size() >= 1 && data.memberUids.size() <= 2 &&
+             request.auth.uid in data.memberUids &&
+             data.type in ['TEXT', 'NUDGE', 'WINK', 'IMAGE', 'VIDEO', 'VOICE'] &&
+             data.text is string && data.text.size() <= 2000 &&
+             data.fontId is string && data.fontId.size() <= 40 &&
+             data.colorHex is string && data.colorHex.size() <= 16 &&
+             data.bold is bool &&
+             data.italic is bool &&
+             data.underline is bool &&
+             data.strikethrough is bool &&
+             (!('winkId' in data) || (data.winkId is string && data.winkId.size() <= 40)) &&
+             (!('mediaBase64' in data) || (data.mediaBase64 is string && data.mediaBase64.size() <= 900000)) &&
+             (!('mediaThumbBase64' in data) || (data.mediaThumbBase64 is string && data.mediaThumbBase64.size() <= 150000)) &&
+             (!('mediaDurationMs' in data) || (data.mediaDurationMs is int && data.mediaDurationMs >= 0 && data.mediaDurationMs <= 300000)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidMultiplayerGame(data) {
+      return data.chatId is string && data.chatId.size() >= 1 && data.chatId.size() <= 128 &&
+             data.gameType in ['GOMOKU_XO', 'MEMORY_MATCH'] &&
+             data.memberUids is list && data.memberUids.size() >= 1 && data.memberUids.size() <= 2 &&
+             data.playerXUid is string && data.playerXUid.size() >= 1 && data.playerXUid.size() <= 128 &&
+             data.playerOUid is string && data.playerOUid.size() >= 1 && data.playerOUid.size() <= 128 &&
+             data.currentTurnUid is string && data.currentTurnUid.size() >= 1 && data.currentTurnUid.size() <= 128 &&
+             data.status in ['ACTIVE', 'FINISHED'] &&
+             data.winnerUid is string && data.winnerUid.size() <= 128 &&
+             isValidStringList(data.boardCells, 121, 32) &&
+             isValidIntList(data.matchedMask, 16) &&
+             isValidIntList(data.revealedIndices, 2) &&
+             isValidIntList(data.winningLine, 5) &&
+             data.scoreX is int && data.scoreX >= 0 && data.scoreX <= 100 &&
+             data.scoreO is int && data.scoreO >= 0 && data.scoreO <= 100 &&
+             data.moveCount is int && data.moveCount >= 0 && data.moveCount <= 500 &&
+             data.createdByUid is string && data.createdByUid.size() >= 1 && data.createdByUid.size() <= 128 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /users/{userId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'passportEmail', 'languageCode', 'soundEnabled', 'vibrationEnabled', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'passportEmail', 'languageCode', 'soundEnabled', 'vibrationEnabled', 'chatFontId', 'chatColorHex', 'chatBold', 'chatItalic', 'chatUnderline', 'createdAt', 'updatedAt']) &&
+                       isValidUserAccount(incoming());
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidUserAccount(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['passportEmail', 'languageCode', 'soundEnabled', 'vibrationEnabled', 'chatFontId', 'chatColorHex', 'chatBold', 'chatItalic', 'chatUnderline', 'updatedAt']);
+      allow delete: if isOwner(userId);
+
+      match /contacts/{contactId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+                         isValidId(contactId) &&
+                         incoming().keys().hasAll(['contactUid', 'msnHandle', 'groupName', 'blocked', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['contactUid', 'msnHandle', 'groupName', 'blocked', 'createdAt', 'updatedAt']) &&
+                         isValidUserContact(incoming());
+        allow update: if isOwner(userId) &&
+                         isValidId(contactId) &&
+                         isValidUserContact(incoming()) &&
+                         incoming().contactUid == existing().contactUid &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['msnHandle', 'groupName', 'blocked', 'updatedAt']);
+        allow delete: if isOwner(userId) && isValidId(contactId);
+      }
+    }
+
+    match /directory/{userId} {
+      allow get: if isSignedIn() && isValidId(userId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'msnHandle', 'displayName', 'personalMessage', 'status', 'nameColorHex', 'nameFontId', 'nameBold', 'nameItalic', 'nameUnderline', 'avatarPreset', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'msnHandle', 'displayName', 'personalMessage', 'status', 'nameColorHex', 'nameFontId', 'nameBold', 'nameItalic', 'nameUnderline', 'avatarPreset', 'avatarBase64', 'createdAt', 'updatedAt']) &&
+                       isValidBuddyDirectoryEntry(incoming());
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidBuddyDirectoryEntry(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['msnHandle', 'displayName', 'personalMessage', 'status', 'nameColorHex', 'nameFontId', 'nameBold', 'nameItalic', 'nameUnderline', 'avatarPreset', 'avatarBase64', 'updatedAt']);
+      allow delete: if isOwner(userId) && isValidId(userId);
+    }
+
+    match /handles/{handleId} {
+      allow get: if isSignedIn() && isValidId(handleId);
+      allow list: if false;
+      allow create: if isSignedIn() &&
+                       isValidId(handleId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'msnHandle', 'createdAt']) &&
+                       incoming().keys().hasOnly(['userId', 'msnHandle', 'createdAt']) &&
+                       isValidHandleLookup(incoming());
+      allow update: if isSignedIn() &&
+                       isValidId(handleId) &&
+                       existing().userId == request.auth.uid &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidHandleLookup(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['msnHandle']);
+      allow delete: if isSignedIn() && isValidId(handleId) && existing().userId == request.auth.uid;
+    }
+
+    match /chats/{chatId} {
+      allow get: if isSignedIn() && isValidId(chatId) && request.auth.uid in existing().memberUids;
+      allow list: if isSignedIn() && request.auth.uid in resource.data.memberUids;
+      allow create: if isSignedIn() &&
+                       isValidId(chatId) &&
+                       request.auth.uid in incoming().memberUids &&
+                       incoming().keys().hasAll(['memberUids', 'lastMessageText', 'lastMessageType', 'lastSenderId', 'typingUids', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['memberUids', 'lastMessageText', 'lastMessageType', 'lastSenderId', 'typingUids', 'createdAt', 'updatedAt']) &&
+                       isValidChatThread(incoming());
+      allow update: if isSignedIn() &&
+                       isValidId(chatId) &&
+                       request.auth.uid in existing().memberUids &&
+                       incoming().memberUids == existing().memberUids &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidChatThread(incoming()) &&
+                       (
+                         incoming().diff(existing()).affectedKeys().hasOnly(['lastMessageText', 'lastMessageType', 'lastSenderId', 'typingUids', 'updatedAt']) ||
+                         incoming().diff(existing()).affectedKeys().hasOnly(['typingUids', 'updatedAt'])
+                       );
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow get: if isSignedIn() && isValidId(chatId) && isValidId(messageId) && request.auth.uid in existing().memberUids;
+        allow list: if isSignedIn() && request.auth.uid in resource.data.memberUids;
+        allow create: if isSignedIn() &&
+                         isValidId(chatId) &&
+                         isValidId(messageId) &&
+                         incoming().chatId == chatId &&
+                         incoming().keys().hasAll(['chatId', 'senderId', 'memberUids', 'type', 'text', 'fontId', 'colorHex', 'bold', 'italic', 'underline', 'strikethrough', 'createdAt']) &&
+                         incoming().keys().hasOnly(['chatId', 'senderId', 'memberUids', 'type', 'text', 'fontId', 'colorHex', 'bold', 'italic', 'underline', 'strikethrough', 'winkId', 'mediaBase64', 'mediaThumbBase64', 'mediaDurationMs', 'createdAt']) &&
+                         isValidChatMessage(incoming()) &&
+                         exists(/databases/$(database)/documents/chats/$(chatId)) &&
+                         request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.memberUids &&
+                         incoming().memberUids == get(/databases/$(database)/documents/chats/$(chatId)).data.memberUids;
+        allow update, delete: if false;
+      }
+
+      match /games/{gameId} {
+        allow get: if isSignedIn() && isValidId(chatId) && isValidId(gameId) && request.auth.uid in existing().memberUids;
+        allow list: if isSignedIn() && request.auth.uid in resource.data.memberUids;
+        allow create: if isSignedIn() &&
+                         isValidId(chatId) &&
+                         isValidId(gameId) &&
+                         incoming().chatId == chatId &&
+                         incoming().createdByUid == request.auth.uid &&
+                         request.auth.uid in incoming().memberUids &&
+                         incoming().keys().hasAll(['chatId', 'gameType', 'memberUids', 'playerXUid', 'playerOUid', 'currentTurnUid', 'status', 'winnerUid', 'boardCells', 'matchedMask', 'revealedIndices', 'winningLine', 'scoreX', 'scoreO', 'moveCount', 'createdByUid', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['chatId', 'gameType', 'memberUids', 'playerXUid', 'playerOUid', 'currentTurnUid', 'status', 'winnerUid', 'boardCells', 'matchedMask', 'revealedIndices', 'winningLine', 'scoreX', 'scoreO', 'moveCount', 'createdByUid', 'createdAt', 'updatedAt']) &&
+                         isValidMultiplayerGame(incoming()) &&
+                         exists(/databases/$(database)/documents/chats/$(chatId)) &&
+                         request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.memberUids &&
+                         incoming().memberUids == get(/databases/$(database)/documents/chats/$(chatId)).data.memberUids;
+        allow update: if isSignedIn() &&
+                         isValidId(chatId) &&
+                         isValidId(gameId) &&
+                         request.auth.uid in existing().memberUids &&
+                         existing().status != 'FINISHED' &&
+                         incoming().chatId == existing().chatId &&
+                         incoming().gameType == existing().gameType &&
+                         incoming().memberUids == existing().memberUids &&
+                         incoming().playerXUid == existing().playerXUid &&
+                         incoming().playerOUid == existing().playerOUid &&
+                         incoming().createdByUid == existing().createdByUid &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidMultiplayerGame(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['currentTurnUid', 'status', 'winnerUid', 'boardCells', 'matchedMask', 'revealedIndices', 'winningLine', 'scoreX', 'scoreO', 'moveCount', 'updatedAt']);
+        allow delete: if false;
+      }
+    }
+  }
+}
